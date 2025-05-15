@@ -1,4 +1,7 @@
-import api,function
+import core.api as api,core.function as function
+import logging
+
+logger = logging.getLogger(__name__)
 
 """
 core.py 역할
@@ -10,6 +13,7 @@ def check_internet():
     return function.check_internet()
 
 def search_movie(a):
+    logger.info(a + "라는 이름을 가진 영화를 검색합니다")
     return api.search_movie(a)
 
 def toggle_scroll(a):

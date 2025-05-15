@@ -1,4 +1,4 @@
-import requests,core
+import requests,core.core as core
 
 
 
