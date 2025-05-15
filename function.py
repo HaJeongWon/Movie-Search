@@ -1,4 +1,6 @@
 import socket
+import json
+
 
 def toggle_scrollbar(a):
     # 텍스트가 넘치는지 체크
@@ -53,4 +55,11 @@ def check_internet():
     except Exception as e:
         print(e)
         return False
+    
+def json_to_dict(json_string):
+    try:
+        return json.loads(json_string)
+    except json.JSONDecodeError as e:
+        print("JSON 파싱 에러:", e)
+        return None
         
