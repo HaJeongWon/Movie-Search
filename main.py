@@ -17,3 +17,5 @@ logging.info("Start program")
 if __name__ == "__main__":
     window.start_gui()
 
+# 창을 끄면 멀티스레드도 같이 꺼지게 만듦
+window.executor.shutdown(wait=False)

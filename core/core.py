@@ -12,9 +12,9 @@ core.py 역할
 def check_internet():
     return function.check_internet()
 
-def search_movie(a):
+def search_movie(a,b):
     logger.info(a + "라는 이름을 가진 영화를 검색합니다")
-    return api.search_movie(a)
+    return api.search_movie(a,b)
 
 def toggle_scroll(a):
     return function.toggle_scrollbar(a)

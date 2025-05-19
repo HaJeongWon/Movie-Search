@@ -3,9 +3,8 @@ import requests,core.core as core
 
 
 #https://developer.themoviedb.org/reference/search-movie
-def search_movie(name):
-    
-    url = "https://api.themoviedb.org/3/search/movie?language=ko&query="+name
+def search_movie(name, page = 1):
+    url = f"https://api.themoviedb.org/3/search/movie?language=ko&page={page}&query={name}"
 
     with open("api-key/TMDB.txt", "r", encoding="utf-8") as f:
         api_key = f.read()
