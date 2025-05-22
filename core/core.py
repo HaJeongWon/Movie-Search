@@ -10,10 +10,11 @@ core.py 역할
 """
 
 def check_internet():
+    """인터넷 연결 상태를 확인함"""
     return function.check_internet()
 
 def search_movie(a,b):
-    logger.info(a + "라는 이름을 가진 영화를 검색합니다")
+    logger.info("%s 검색", a)
     return api.search_movie(a,b)
 
 def toggle_scroll(a):

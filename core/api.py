@@ -6,7 +6,7 @@ import requests,core.core as core
 def search_movie(name, page = 1):
     url = f"https://api.themoviedb.org/3/search/movie?language=ko&page={page}&query={name}"
 
-    with open("api-key/TMDB.txt", "r", encoding="utf-8") as f:
+    with open("api/TMDB.txt", "r", encoding="utf-8") as f:
         api_key = f.read()
 
     headers = {

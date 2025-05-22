@@ -21,33 +21,12 @@ def is_tmdb_alive():
     except requests.exceptions.RequestException:
         logger.warning("TMDB API server is down")
         return False
-
-def is_chatgpt_alive():
-    try:
-        headers = {
-            "Authorization": "Bearer YOUR_OPENAI_API_KEY",  # ← 너의 실제 키로 교체
-            "Content-Type": "application/json"
-        }
-        data = {
-            "model": "gpt-3.5-turbo",  # 또는 gpt-4
-            "messages": [{"role": "user", "content": "ping"}]
-        }
-        response = requests.post("https://api.openai.com/v1/chat/completions", json=data, headers=headers, timeout=3)
-        return response.status_code == 200
-    except requests.exceptions.RequestException:
-        logger.warning("ChatGPT API server is down")
-        return False
     
 def check_internet():
     try:
         try_tcp_connect("8.8.8.8", 53) # 구글 DNS
-
-        # if not (is_chatgpt_alive() and is_tmdb_alive()):
-        #     # print(is_chatgpt_alive())
-        #     # print(is_tmdb_alive())
-        #     return False
-
-        return True
+       
+        return not is_tmdb_alive()
     except Exception as e:
         logger.warning(e)
         return False
