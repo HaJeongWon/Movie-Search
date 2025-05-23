@@ -12,10 +12,10 @@ logging.basicConfig(
     ]
 )
 
-logging.info("Start program")
+logging.info("프로그램 시작")
 
 if __name__ == "__main__":
-    window.start_gui()
+    ui = window.Window()
+    ui.start_gui()
 
-# 창을 끄면 멀티스레드도 같이 꺼지게 만듦
-window.executor.shutdown(wait=False)
+logging.info("프로그램 종료")
