@@ -12,7 +12,7 @@ import certifi
 
 
 class Window:
-    def __init__(self):
+    def __init__(self): # 생성자(인스턴스 생성시 즉시 실행됨)
         self.logger = logging.getLogger(__name__)
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
         self.POSTER_BASE_URL = r"https://image.tmdb.org/t/p/w342"
@@ -27,11 +27,13 @@ class Window:
         self.search_button = ctk.CTkButton(self.input_frame, text="검색", command=self.on_search_button_click, width=120, height=40, corner_radius=10,font=ctk.CTkFont(weight="bold"))
         self.result_label = ctk.CTkLabel(self.search_frame, text="", text_color="black")
         self.scrollable_result_frame = ctk.CTkScrollableFrame(self.search_frame, width=600, height=400)
-        self.page_frame = ctk.CTkFrame(self.search_frame, width=400, height=100, bg_color="transparent")
+        self.page_frame = ctk.CTkFrame(self.search_frame, width=400, height=100, bg_color="transparent",fg_color="transparent")
         self. result_frame = ctk.CTkFrame(self.root, fg_color="transparent")
-        self.search_keyword = self.entry.get()
+        
 
+        self.result_overflow = False
         self.page = 1
+        self.page_info = ctk.CTkLabel(self.page_frame, text=f"{self.page}",width=150, font=("맑은 고딕", 26, "bold"), bg_color="transparent")
 
     def start_gui(self): # 시작 창
         # 테마 설정
@@ -60,25 +62,26 @@ class Window:
         # 4. 결과 텍스트 (세로로 아래에 배치)
         self.result_label.pack(pady=10)  # 검색창과 결과 사이 여백
 
-        
         self.scrollable_result_frame.pack()
 
         self.page_frame.grid_columnconfigure(0, weight=1)  # 왼쪽
         self.page_frame.grid_columnconfigure(1, weight=1)  # 가운데
         self.page_frame.grid_columnconfigure(2, weight=1)  # 오른쪽
 
-        pre_button = ctk.CTkButton(self.page_frame,text="이전", width=120, height=40, corner_radius=10,font=ctk.CTkFont(weight="bold"))
-        pre_button.grid(row=0, column=0)
+        pre_button = ctk.CTkButton(self.page_frame,text="이전", bg_color="transparent", width=100, height=40, corner_radius=10,font=ctk.CTkFont(weight="bold"))
+        pre_button.grid(row=0, column=0, sticky="w", padx=(10,5))
+        pre_button.bind("<Button-1>", lambda e: self.page_change(False))
 
-        page_info = ctk.CTkLabel(self.page_frame, text="test", font=("맑은 고딕", 26, "bold"), bg_color="transparent")
-        page_info.grid(row=0, column=1)
-
-        next_button = ctk.CTkButton(self.page_frame, text="다음", width=120, height=40, corner_radius=10,font=ctk.CTkFont(weight="bold"))
-        next_button.grid(row=0, column=2)
         
+        self.page_info.grid(row=0, column=1, sticky="ew", padx=5)
+
+        next_button = ctk.CTkButton(self.page_frame, text="다음", bg_color="transparent", width=100, height=40, corner_radius=10,font=ctk.CTkFont(weight="bold"))
+        next_button.grid(row=0, column=2, sticky="e", padx=(5,10))
+        next_button.bind("<Button-1>", lambda e: self.page_change(True))
+
         self.bottom_frame.pack(side="bottom",pady=5 , fill="x")
 
-            # column 3개 구성
+        # column 3개 구성
         self.bottom_frame.grid_columnconfigure(0, weight=1)  # 왼쪽
         self.bottom_frame.grid_columnconfigure(1, weight=1)  # 가운데
         self.bottom_frame.grid_columnconfigure(2, weight=1)  # 오른쪽
@@ -96,7 +99,7 @@ class Window:
         # 루프 실행
         self.root.mainloop() # 화면 구성요소 바꾸면 리렌더링 시키 위한 코드
 
-    def open_link(url, event=None):
+    def open_link(self, url, event=None):
         webbrowser.open_new(url)
 
     def check_internet(self):
@@ -118,7 +121,8 @@ class Window:
 
     # 검색어 처리 함수
     def on_search_button_click(self, event=None): 
-        
+        self.page = 1 # 페이지 초기화
+        self.search_keyword = self.entry.get()
         
 
         if self.search_keyword.strip() == "":
@@ -208,7 +212,11 @@ class Window:
             self.executor.submit(self.create_movie_card, movie['results'][i],i)
 
     def handle_result(self, movie):
-        if movie['total_results']==1:
+        if self.result_overflow:
+            self.page_frame.pack_forget()
+            self.result_overflow=False
+        
+        if movie['total_results']==1: # movie['total_results']는 검색된 영화의 갯수를 의미합니다
             self.result_label.configure(text=f"검색이 완료되었습니다")
             self.window_result_screen(movie['results'][0])
 
@@ -217,10 +225,16 @@ class Window:
 
         else:
             if movie['total_results']>20:
-                result_overflow =True
-
+                # 영화는 최대 20개까지 전달되므로 20개 이상이면 페이지 변환 기능을 켜야합니다
+                # result_overflow를 True로 하면 그 기능이 켜지게 됩니다
+                self.result_overflow =True
+                
+                # 아래 코드는 몇 페이지까지 있는지 연산하는 코드입니다
+                total_page = movie['total_results']//20 
+                if movie['total_results']%20 != 0:
+                    total_page+=1
             else:
-                result_overflow =False
+                self.result_overflow =False
 
             self.result_label.configure(text=f"{movie['total_results']}개의 검색 결과 생성 중...")
             self.scrollable_result_frame.pack_forget()
@@ -229,7 +243,7 @@ class Window:
                 i.destroy()
             
             with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor: # 이미지 로딩 속도를 올리기 위해 (5개의 스레드 사용)
-                futures = [executor.submit(self.create_movie_card, m) for m in movie['results']]
+                futures = [executor.submit(self.create_movie_card, m) for m in movie['results']] # 검색할때마다 결과의 순서가 안 바뀌기 위해 이렇게 작성함
                 results = []
 
                 for f in futures:
@@ -239,29 +253,30 @@ class Window:
                     except Exception as e:
                         self.logger.error(f"스레드 실패: {e}")
 
-            for i in results:
+            for i in results: # 결과 순서대로 pack
                 i.pack(pady=10, padx=(10,8), fill="x")
 
-            if result_overflow: # 결과가 20개 이상일때(api에서 최대 20개 제공)
-                self.result_label.configure(text=f"{movie['total_results']}개의 검색 결과[{self.page}페이지]")
-
-            else:
-                self.result_label.configure(text=f"{movie['total_results']}개의 검색 결과")
+            self.result_label.configure(text=f"{movie['total_results']}개의 검색 결과")
             
             self.scrollable_result_frame.pack()
 
-            # if result_overflow:
-            #     self.page_frame.pack()
+            if self.result_overflow:
+                self.page_info.configure(text=f"{self.page} / {total_page}")
+                self.page_frame.pack(pady=(10,0))
 
 
-    def page_change(self, page_up,page):
+    def page_change(self, page_up):
         if page_up:
-            page+=1
+            self.page+=1
             self.movie_search()
+        else:
+            self.page-=1
+            self.movie_search()
+        self.page_info.configure(text="진행중..")
 
 
 
-    def show_large_image(self, poster_url):
+    def show_large_image(self, poster_url): # 포스터를 큰 화면으로 여는 함수
         logging.info(f"큰 포스터를 엽니다[url:{poster_url}]")
         response = requests.get(poster_url)
         img = Image.open(BytesIO(response.content))
@@ -277,7 +292,7 @@ class Window:
         label.image = photo  # 참조 유지
         label.pack()
 
-    def create_result_frame(self, movie_info):
+    def create_result_frame(self, movie_info): # 결과창
         # 카드형 중앙 컨테이너
         card_frame = ctk.CTkFrame(self.result_frame, corner_radius=15, fg_color="#f9f9f9")
         card_frame.pack(padx=40, pady=30)
@@ -301,7 +316,7 @@ class Window:
         self.result_frame.pack(fill="both", expand=True, pady=20)
 
 
-    def create_poster_section(self, poster_url,content_frame): 
+    def create_poster_section(self, poster_url,content_frame): # 결과창에서 포스터 부분을 담당하는 함수
         # 왼쪽: 포스터
         image_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
         image_frame.grid(row=1, column=0, sticky="n", padx=10)
@@ -322,7 +337,7 @@ class Window:
             error_label = ctk.CTkLabel(image_frame,image=CTkImage(self.load_fail_img, size=(160, 160)), text="")
             error_label.pack()
         
-    def create_text_section(self, title, rating, overview,content_frame): 
+    def create_text_section(self, title, rating, overview,content_frame): # 결과창에서 텍스트 부분을 담당하는 함수
         # 오른쪽: 텍스트
         text_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
         text_frame.grid(row=1, column=1, sticky="nw", padx=30)
@@ -352,7 +367,7 @@ class Window:
         overview_textbox.configure(state="disabled")
         overview_textbox.pack(side="left", padx=(0, 5))
 
-        if core.toggle_scroll(overview_textbox):
+        if core.toggle_scroll(overview_textbox): # 텍스트가 정해진 라벨 크기보다 더 클 때 스크롤을 생성하는 함수
             # 스크롤바 옆에 붙이기
             scrollbar = ctk.CTkScrollbar(master=overview_frame, command=overview_textbox.yview,fg_color="#cccccc",corner_radius=10)
             scrollbar.configure(width=12) 
@@ -370,7 +385,7 @@ class Window:
         
         self.create_result_frame(movie_info)
 
-    def go_back(self, event = None):
+    def go_back(self, event = None): # 뒤로가기 함수(결과창->검색창)
         self.result_frame.destroy()
         self.search_frame.pack(pady=30)
         self.search_button.configure(state="normal")

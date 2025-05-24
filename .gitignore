@@ -1,2 +1,5 @@
 api/
 movie_app.log
+__pycache__/
+*.pyc
+*.pyo
