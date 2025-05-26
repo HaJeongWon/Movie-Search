@@ -14,7 +14,7 @@ def check_internet():
     return function.check_internet()
 
 def search_movie(a,b):
-    logger.info("%s 검색", a)
+    logger.info("%s %s페이지 검색", a, b)
     return api.search_movie(a,b)
 
 def toggle_scroll(a):

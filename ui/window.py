@@ -29,7 +29,27 @@ class Window:
         self.scrollable_result_frame = ctk.CTkScrollableFrame(self.search_frame, width=600, height=400)
         self.page_frame = ctk.CTkFrame(self.search_frame, width=400, height=100, bg_color="transparent",fg_color="transparent")
         self. result_frame = ctk.CTkFrame(self.root, fg_color="transparent")
-        
+        self.GENRE_MAP = {
+            28: "액션", 
+            12: "모험", 
+            16: "애니메이션", 
+            35: "코미디", 
+            80: "범죄", 
+            99: "다큐멘터리", 
+            18: "드라마", 
+            10751: "가족", 
+            14: "판타지", 
+            36: "역사", 
+            27: "공포", 
+            10402: "음악", 
+            9648: "미스터리", 
+            10749: "로맨스", 
+            878: "SF", 
+            10770: "TV 영화", 
+            53: "스릴러", 
+            10752: "전쟁", 
+            37: "서부"
+        }
 
         self.result_overflow = False
         self.page = 1
@@ -201,69 +221,84 @@ class Window:
         text_frame.grid_columnconfigure(0, weight=1)
         text_frame.bind("<Button-1>", lambda event, movie=i: self.window_result_screen(movie))
 
+        
         # 제목
         title = i['title']
         title_label = ctk.CTkLabel(text_frame, text=title, font=("맑은 고딕", 23, "bold"), anchor="w")
         title_label.pack(anchor="w")
         title_label.bind("<Button-1>", lambda event, movie=i: self.window_result_screen(movie))
+    
+        i['release_date'] = i['release_date'].replace("-","")
+
+        i['release_date'] = i['release_date'][:4]+"년 "+i['release_date'][4:6]+"월 "+i['release_date'][6:]+"일"
+        release_date=i['release_date']
+        release_date_label = ctk.CTkLabel(text_frame, text=f"개봉일: {release_date}", font=("맑은 고딕", 18, "bold"), anchor="w")
+        
+        release_date_label.bind("<Button-1>", lambda event, movie=i: self.window_result_screen(movie))
+
+
+        genre_frame=ctk.CTkFrame(text_frame, fg_color="transparent")
+        
+        for a, b in enumerate(i['genre_ids'], start=0):
+            genre = self.get_genre_names(b)
+            genre_label_container = ctk.CTkFrame(genre_frame, corner_radius=10, fg_color="#61a1d2")
+            genre_label = ctk.CTkLabel(genre_label_container, text=genre, font=("맑은 고딕", 18, "bold"), anchor="w",text_color="white")
+            genre_label.pack(padx=8, pady=4)
+            genre_label_container.grid(row=0, column=a,padx=5)
+
+        
+            release_date_label.pack(anchor="w")
+            genre_frame.pack()
+
+    def get_genre_names(self, genre_ids):
+        return self.GENRE_MAP.get(genre_ids, "Unknown")
 
     def submit_grouped(self, indexes,movie):
         for i in indexes:
             self.executor.submit(self.create_movie_card, movie['results'][i],i)
 
     def handle_result(self, movie):
+        
         if self.result_overflow:
             self.page_frame.pack_forget()
-            self.result_overflow=False
+            self.result_overflow = False
+
+        self.scrollable_result_frame.pack_forget()
+
         
-        if movie['total_results']==1: # movie['total_results']는 검색된 영화의 갯수를 의미합니다
-            self.result_label.configure(text=f"검색이 완료되었습니다")
-            self.window_result_screen(movie['results'][0])
+        for i in self.scrollable_result_frame.winfo_children(): # 화면에서 destory 했더니 렌더링 중에 프레임이 사라져서 에러 엄청 뜸
+            # 일단 화면에서 숨기고 메모리에서 삭제 안 시켜서 오류 방지(메모리 누수 지점)
+            i.pack_forget()
+        
+        
 
-        elif movie['total_results']==0:
-            self.result_label.configure(text=f"검색 결과 없음")
 
+        self.result_label.configure(text=f"{movie['total_results']}개의 검색 결과 생성 중...")
+
+        self.results_to_render = movie['results']
+        self.render_index = 0
+        self.root.after(0, self.render_next_card)
+
+        # 페이지 정보 표시
+        if movie['total_results'] > 20:
+            self.result_overflow = True
+            total_page = (movie['total_results'] + 19) // 20
+            self.page_info.configure(text=f"{self.page} / {total_page}")
+            
         else:
-            if movie['total_results']>20:
-                # 영화는 최대 20개까지 전달되므로 20개 이상이면 페이지 변환 기능을 켜야합니다
-                # result_overflow를 True로 하면 그 기능이 켜지게 됩니다
-                self.result_overflow =True
-                
-                # 아래 코드는 몇 페이지까지 있는지 연산하는 코드입니다
-                total_page = movie['total_results']//20 
-                if movie['total_results']%20 != 0:
-                    total_page+=1
-            else:
-                self.result_overflow =False
+            self.page_frame.pack_forget()
 
-            self.result_label.configure(text=f"{movie['total_results']}개의 검색 결과 생성 중...")
-            self.scrollable_result_frame.pack_forget()
-
-            for i in self.scrollable_result_frame.winfo_children():
-                i.destroy()
-            
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor: # 이미지 로딩 속도를 올리기 위해 (5개의 스레드 사용)
-                futures = [executor.submit(self.create_movie_card, m) for m in movie['results']] # 검색할때마다 결과의 순서가 안 바뀌기 위해 이렇게 작성함
-                results = []
-
-                for f in futures:
-                    try:
-                        results.append(f.result(timeout=5))  # 타임아웃 걸기
-
-                    except Exception as e:
-                        self.logger.error(f"스레드 실패: {e}")
-
-            for i in results: # 결과 순서대로 pack
-                i.pack(pady=10, padx=(10,8), fill="x")
-
-            self.result_label.configure(text=f"{movie['total_results']}개의 검색 결과")
-            
+    def render_next_card(self):
+        if self.render_index < len(self.results_to_render):
+            movie = self.results_to_render[self.render_index]
+            card = self.create_movie_card(movie)
+            card.pack(pady=10, padx=(10,8), fill="x")
+            self.render_index += 1
+            self.root.after(10, self.render_next_card)  # 10ms 후 다음 카드 렌더링
+        else:
+            self.result_label.configure(text=f"{len(self.results_to_render)}개의 검색 결과")
             self.scrollable_result_frame.pack()
-
-            if self.result_overflow:
-                self.page_info.configure(text=f"{self.page} / {total_page}")
-                self.page_frame.pack(pady=(10,0))
-
+            self.page_frame.pack(pady=(10, 0))
 
     def page_change(self, page_up):
         if page_up:
@@ -386,7 +421,9 @@ class Window:
         self.create_result_frame(movie_info)
 
     def go_back(self, event = None): # 뒤로가기 함수(결과창->검색창)
-        self.result_frame.destroy()
+        self.result_frame.pack_forget()
+        for i in self.result_frame.winfo_children():
+            i.destroy()
         self.search_frame.pack(pady=30)
         self.search_button.configure(state="normal")
 
