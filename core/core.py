@@ -1,7 +1,9 @@
-import core.api as api,core.function as function
-import logging
+if __name__=="__main__":
+    print("잘못된 접근입니다. main.py 파일을 실행하십시요.")
+    exit()
 
-logger = logging.getLogger(__name__)
+import core.api as api,core.function as function
+
 
 """
 core.py 역할
@@ -14,7 +16,6 @@ def check_internet():
     return function.check_internet()
 
 def search_movie(a,b):
-    logger.info("%s %s페이지 검색", a, b)
     return api.search_movie(a,b)
 
 def toggle_scroll(a):

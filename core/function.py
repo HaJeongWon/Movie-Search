@@ -1,3 +1,7 @@
+if __name__=="__main__":
+    print("잘못된 접근입니다. main.py 파일을 실행하십시요.")
+    exit()
+
 import socket, requests
 import json
 import logging
