@@ -237,7 +237,7 @@ class Window:
         
         # 제목
         title = i['title']
-        title_label = ctk.CTkLabel(text_frame, text=title, font=("맑은 고딕", 23, "bold"), anchor="w")
+        title_label = ctk.CTkLabel(text_frame, text=title, font=("맑은 고딕", 26, "bold"), anchor="w")
         title_label.pack(anchor="w")
         title_label.bind("<Button-1>", lambda event, movie=i: self.window_result_screen(movie))
     
@@ -252,16 +252,20 @@ class Window:
 
         genre_frame=ctk.CTkFrame(text_frame, fg_color="transparent")
         
-        for a, b in enumerate(i['genre_ids'], start=0):
+        for a, b in enumerate(i['genre_ids']):
             genre = self.get_genre_names(b)
             genre_label_container = ctk.CTkFrame(genre_frame, corner_radius=10, fg_color="#61a1d2")
-            genre_label = ctk.CTkLabel(genre_label_container, text=genre, font=("맑은 고딕", 14, "bold"), anchor="w",text_color="white")
-            genre_label.pack(padx=4, pady=2)
-            genre_label_container.grid(row=0, column=a,padx=2)
+            genre_label_container.bind("<Button-1>", lambda event, movie=i: self.window_result_screen(movie))
+
+            genre_label = ctk.CTkLabel(genre_label_container, text=genre, font=("맑은 고딕", 17, "bold"),text_color="white")
+            genre_label.bind("<Button-1>", lambda event, movie=i: self.window_result_screen(movie))
+            genre_label.pack(padx=10, pady=2, anchor="w")
+
+            genre_label_container.grid(row=0, column=a,padx=2,sticky="w")
 
         
-            release_date_label.pack(anchor="w")
-            genre_frame.pack()
+            release_date_label.pack(anchor="w",pady=5)
+            genre_frame.pack(anchor="w",pady=5)
 
     def get_genre_names(self, genre_ids):
         return self.GENRE_MAP.get(genre_ids, "Unknown")
@@ -335,7 +339,7 @@ class Window:
 
 
     def show_large_image(self, poster_url): # 포스터를 큰 화면으로 여는 함수
-        logging.info(f"큰 포스터를 엽니다[url:{poster_url}]")
+        self.logger.info(f"큰 포스터를 엽니다[url:{poster_url}]")
         response = requests.get(poster_url)
         img = Image.open(BytesIO(response.content))
 
@@ -353,75 +357,90 @@ class Window:
     def create_result_frame(self, movie_info): # 결과창
         # 카드형 중앙 컨테이너
         card_frame = ctk.CTkFrame(self.result_frame, corner_radius=15, fg_color="#f9f9f9")
-        card_frame.pack(padx=40, pady=30)
+        card_frame.pack(padx=20, pady=(20,0))
 
-    
-        # 좌우 나누는 content_frame
-        content_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
-        content_frame.grid(row=0, column=0, padx=20, pady=20)
-        content_frame.columnconfigure(0, weight=1)
-        content_frame.columnconfigure(1, weight=2)
-        self.create_poster_section(movie_info['poster_url'],content_frame)
-        self.create_text_section(movie_info['title'], movie_info['rating'],movie_info['overview'],content_frame)
+        self.movie_contents_frame = ctk.CTkFrame(card_frame, fg_color="transparent")
+        self.movie_contents_frame.pack(padx = 10, pady = (10,0))
 
+        # 좌우 나누는 poster_info_frame
+        self.poster_info_frame = ctk.CTkFrame(self.movie_contents_frame, fg_color="transparent")
+        self.poster_info_frame.pack(padx=5, pady=5,fill="x")
+        self.poster_info_frame.columnconfigure(0, weight=1)
+        self.poster_info_frame.columnconfigure(1, weight=1)
+        self.create_poster_section(movie_info)
+        self.create_movie_info(movie_info)
+        self.overview(movie_info)
 
         go_back_button = ctk.CTkButton(card_frame, text="뒤로가기", corner_radius=10,font=ctk.CTkFont(weight="bold"), width=200, height=40)
         go_back_button.bind("<Button-1>",self.go_back)
-        go_back_button.grid(row=1, column=0, pady=(0,10))
+        go_back_button.pack(pady=(0,10))
 
 
         self.search_frame.pack_forget()
         self.result_frame.pack(fill="both", expand=True, pady=20)
 
 
-    def create_poster_section(self, poster_url,content_frame): # 결과창에서 포스터 부분을 담당하는 함수
+    def create_poster_section(self, movie_info): # 결과창에서 포스터 부분을 담당하는 함수
         # 왼쪽: 포스터
-        image_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        image_frame.grid(row=1, column=0, sticky="n", padx=10)
+        poster_url = movie_info['poster_url']
+        image_frame = ctk.CTkFrame(self.poster_info_frame, fg_color="transparent")
+        image_frame.grid(row=1, column=0, sticky="wn", padx=(10,0))
         
         try:
             response = requests.get(poster_url)
             image_data = Image.open(BytesIO(response.content))
-            poster_image = CTkImage(light_image=image_data, size=(160, 240))
+            poster_image = CTkImage(light_image=image_data, size=(170, 255))
             image_label = ctk.CTkLabel(image_frame, image=poster_image, text="")
             image_label.image = poster_image
-            image_label.pack(padx=(10,0),pady=(20,0))
+            image_label.pack(padx=(20,0),pady=(10,0))
             image_label.bind("<Button-1>", lambda event: self.show_large_image(
                 poster_url.replace("w342", "w780") # 큰 포스터는 고화질로
             ))
 
         except Exception as e:
             self.logger.error(f"이미지 요청 실패: {e}")
-            error_label = ctk.CTkLabel(image_frame,image=CTkImage(self.load_fail_img, size=(160, 160)), text="")
+            error_label = ctk.CTkLabel(image_frame,image=CTkImage(self.load_fail_img, size=(180, 270)), text="")
             error_label.pack()
         
-    def create_text_section(self, title, rating, overview,content_frame): # 결과창에서 텍스트 부분을 담당하는 함수
+    def create_movie_info(self,movie_info): # 결과창에서 텍스트 부분을 담당하는 함수
         # 오른쪽: 텍스트
-        text_frame = ctk.CTkFrame(content_frame, fg_color="transparent")
-        text_frame.grid(row=1, column=1, sticky="nw", padx=30)
-        title_label = ctk.CTkLabel(text_frame, text=title, font=("맑은 고딕", 26, "bold"))
-        title_label.pack(anchor="w", pady=(0, 10))
+        title = movie_info['title']
+        rating = movie_info['rating']
+        text_frame = ctk.CTkFrame(self.poster_info_frame, fg_color="transparent")
+        text_frame.grid(row=1, column=1, sticky="nw")
+        title_label = ctk.CTkLabel(text_frame, text=title, font=("맑은 고딕", 34, "bold"))
+        title_label.pack(anchor="w", pady=10)
 
-        rating_label = ctk.CTkLabel(text_frame, text=f"★ {rating} / 10",font=("맑은 고딕", 20, "bold"), text_color="#ffaa00")
-        rating_label.pack(anchor="w", pady=(0, 10))
+        rating_label = ctk.CTkLabel(text_frame, text=f"★ {rating} / 10",font=("맑은 고딕", 22, "bold"), text_color="#ffaa00")
+        rating_label.pack(anchor="w", pady=10)
 
+        release_date_label = ctk.CTkLabel(text_frame, text=f'개봉일: {movie_info["release_date"]}', font=("맑은 고딕", 22, "bold"), anchor="w")
+        release_date_label.pack(anchor="w", pady=10)
+
+        genre_list=[]
+        for i in movie_info["genre_ids"]:
+            genre_list += [self.get_genre_names(i)]
+        genres_label = ctk.CTkLabel(text_frame,text=f'장르: {", ".join(genre_list)}', font=("맑은 고딕", 22, "bold"), anchor="w")
+        genres_label.pack(anchor="w", pady=10)
+
+    def overview(self, movie_info):
         # 먼저 overview용 하위 프레임 생성
-        overview_frame = ctk.CTkFrame(master=text_frame, fg_color="transparent")
-        overview_frame.pack(anchor="w", pady=10)
+        overview_frame = ctk.CTkFrame(master=self.movie_contents_frame, fg_color="transparent")
+        overview_frame.pack(padx=30,pady=10)
 
 
         # 텍스트박스 (문자 단위 줄바꿈)
         overview_textbox = ctk.CTkTextbox(
             master=overview_frame,
-            font=("맑은 고딕", 15),
+            font=("맑은 고딕", 18, "bold"),
             wrap="char",
-            width=450,
+            width=600,
             height=200,
             bg_color="#f5f5f5"
         )
 
 
-        overview_textbox.insert("1.0", overview)
+        overview_textbox.insert("1.0", movie_info["overview"])
         overview_textbox.configure(state="disabled")
         overview_textbox.pack(side="left", padx=(0, 5))
 
@@ -436,9 +455,13 @@ class Window:
         
     def window_result_screen(self, movie):
         self.logger.info(f"영화의 자세한 정보를 불러옵니다[id:{str(movie['id'])}]")
+        
         movie_info={"title": movie['title'],
                     "overview": movie['overview'],
-                    "rating": movie['vote_average'],}
+                    "rating": movie['vote_average'],
+                    "release_date":movie['release_date'],
+                    "genre_ids": movie["genre_ids"]
+                    }
         movie_info["poster_url"] = self.POSTER_BASE_URL + movie['poster_path'] if movie['poster_path'] else None
         
         self.create_result_frame(movie_info)
