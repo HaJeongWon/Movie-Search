@@ -282,6 +282,12 @@ class Window:
             self.result_label.configure(text="검색된 영화가 없습니다")
             self.search_keyword = self.before_keyword # 검색된 영화가 없을 시 전 검색 내용으로 저장
             return
+        
+        elif self.total_results == 1:
+            self.result_label.configure(text="검색된 영화가 1개뿐이므로 상세 정보로 바로 이동합니다")
+            self.window_result_screen(movie["results"][0])
+            return
+
 
         if self.result_overflow:
             self.page_frame.pack_forget()
