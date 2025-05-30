@@ -25,6 +25,7 @@ class Window:
         self.root = ctk.CTk()
         self.result_frame = ctk.CTkFrame(self.root, fg_color="transparent")
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
 
         self.page = 0
         self.search_keyword = self.before_keyword = ""
@@ -479,7 +480,6 @@ class Window:
         self.search_frame.pack(pady=30)
         self.search_button.configure(state="normal")
 
-
-    def __del__(self):
-        # 창을 끄면 멀티스레드도 같이 꺼지게 만듦
+    def on_close(self):
         self.executor.shutdown(wait=False)
+        self.root.destroy()  # 또는 self.window.destroy()
