@@ -2,7 +2,7 @@ if __name__=="__main__":
     print("잘못된 접근입니다. main.py 파일을 실행하십시요.")
     exit()
 
-import core.api as api,core.function as function
+import api.api as api,core.function as function
 
 
 """
