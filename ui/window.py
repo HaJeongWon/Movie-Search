@@ -283,6 +283,7 @@ class Window:
         elif self.total_results == 1:
             self.result_label.configure(text="검색된 영화가 1개뿐이므로 상세 정보로 바로 이동합니다")
             self.window_result_screen(movie["results"][0])
+            self.search_keyword = self.before_keyword
             return
 
 
