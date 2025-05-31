@@ -271,10 +271,6 @@ class Window:
     def get_genre_names(self, genre_ids):
         return self.GENRE_MAP.get(genre_ids, "Unknown")
 
-    def submit_grouped(self, indexes,movie):
-        for i in indexes:
-            self.executor.submit(self.create_movie_card, movie['results'][i],i)
-
     def handle_result(self, movie):
         
         self.total_results = movie['total_results']
